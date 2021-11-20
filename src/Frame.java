@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 import java.util.TreeSet;
 import java.util.Vector;
@@ -119,12 +120,16 @@ public class Frame extends JFrame {
         JButton checkUserChain = new JButton("Check this chain");
         automatePane.add(checkUserChain);
 
+        // чекнуть допустимость пользовательской цепочки (checkUserChain)
 
+        //построить автомат из регулрярки (generateAutomate)
 
         chainsFromRegular.addActionListener(l -> {
             chains.removeAll();
             try {
-
+                new FromRegularExpressionGenerator(expression.getText())
+                        .generateChains(Integer.parseInt(fromSize.getText()), Integer.parseInt(toSize.getText()))
+                        .forEach(e -> chains.add(new JLabel(e)));
             } catch (Exception e) {
                 JLabel exceptionLabel = new JLabel(e.getMessage());
                 exceptionLabel.setForeground(Color.RED);
@@ -167,10 +172,20 @@ public class Frame extends JFrame {
                 try {
                     PrintWriter writer = new PrintWriter(new FileWriter(name));
                     writer.print("M({");
-                    writer.print(states);
-                    writer.print("}, ");
-                    //writer.print();
-
+                    writer.print(states.getText());
+                    writer.print("}, {");
+                    writer.print(terminals.getText());
+                    writer.print("}, P, ");
+                    writer.print(startState.getText());
+                    writer.print(", {");
+                    writer.print(endStates.getText());
+                    writer.println("})");
+                    writer.println("P:");
+                    for(int i = 0; i < tableModel.getRowCount(); i++){
+                        for (int j = 0; j < tableModel.getColumnCount(); j++)
+                            writer.print(tableModel.getValueAt(i, j) + "\t");
+                        writer.println();
+                    }
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
