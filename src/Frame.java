@@ -141,6 +141,10 @@ public class Frame extends JFrame {
 
         checkChains.addActionListener(l -> {
             checkChainsPane.removeAll();
+            if(canCreate != null){
+                automatePane.remove(canCreate);
+                canCreate = null;
+            }
             try {
 
             } catch (Exception e) {
