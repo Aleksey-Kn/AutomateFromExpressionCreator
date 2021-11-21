@@ -1,17 +1,9 @@
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.io.*;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
-import java.util.TreeSet;
 import java.util.Vector;
-import java.util.stream.Collectors;
 
 public class Frame extends JFrame {
     private JLabel canCreate = null;
@@ -167,6 +159,7 @@ public class Frame extends JFrame {
                                 Процесс разбора цепочек автоматом отображать на экране. Предусмотреть возможность разбора цепочки,
                                 введённой пользователем. В качестве исходных данных допускаются РВ, порождающие цепочки,
                                 имеющие определенное количество циклических повторений всех символов алфавита или некоторой их части, заканчивающиеся на заданную цепочку.
+                                Например, (а+b+с)*ааса, или ((а+b)(а+b))*аасb, и т.п.
                                 """));
         saveAutomate.addActionListener(l -> {
             String name = JOptionPane.showInputDialog(null,

@@ -1,6 +1,4 @@
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class FromRegularExpressionGenerator {
@@ -33,6 +31,61 @@ public class FromRegularExpressionGenerator {
                 .filter(s -> s.length() <= maxLength)
                 .filter(s -> s.length() >= minLength)
                 .collect(Collectors.toList());
+    }
+
+    public List<String> generateAutomate() {
+        Set<Character> terminals = regular.chars()
+                .filter(c -> Character.isDigit(c) || Character.isLowerCase(c))
+                .mapToObj(i -> (char) i)
+                .collect(Collectors.toSet());
+        Map<String, Map<Character, String>> regulations = new HashMap<>();
+        return null; //!!!
+    }
+
+    private List<String> generateRegulations(String nowString, List<String> nowState,
+                                             Map<String, Map<Character, String>> regulations, List<String> inState){
+        if(split(nowString).length == 1){
+            String nextState;
+            int indexCloseFor;
+            for (int i = 0; i < nowString.length(); i++){
+                nextState = "q" + (char)('0' + regulations.size());
+                if(nowString.charAt(i) == '('){
+                    indexCloseFor = indexCloseFor(nowString, i);
+                    nowState = generateRegulations(searchNextBlock(nowString, i), nowState, regulations,
+                            (nowString.charAt(indexCloseFor + 1) == '*'? nowState: null));
+                    i = indexCloseFor;
+                } else {
+                    for(String ns: nowState){
+                        if (!regulations.containsKey(ns))
+                                    regulations.put(ns, new HashMap<>());
+                        regulations.get(ns).put(nowString.charAt(i), nextState);
+                    }
+                    nowState = Collections.singletonList(nextState);
+                }
+            }
+            //обработать зацикливание
+            return nowState;
+        } else{
+            List<String> result = new LinkedList<>();
+            for(String s: split(nowString)){
+                result.addAll(generateRegulations(s, nowState, regulations,
+                        (nowString.charAt(nowString.length() - 1) == '*'? nowState: null)));
+            }
+            return result;
+        }
+    }
+
+    private String searchNextBlock(String s, int startInd){
+        int endInd;
+        String result;
+        startInd = s.indexOf('(', startInd);
+        if (startInd == -1)
+            return null;
+        endInd = indexCloseFor(s, startInd);
+        result = s.substring(startInd, endInd + 1);
+        if (s.length() > endInd + 1 && s.charAt(endInd + 1) == '*')
+            result += '*';
+        return result;
     }
 
     private ArrayList<String> oneStep(ArrayList<String> previousResult, String[] options){ // возвращает входные цепочки, на которые навешены варианты из входных options
@@ -118,5 +171,22 @@ public class FromRegularExpressionGenerator {
         }
         spliting.add(s.substring(prev));
         return spliting.toArray(String[]::new);
+    }
+
+    private int indexCloseFor(String nowRegular, int startIndex) {
+        if (nowRegular.charAt(startIndex) != '(')
+            throw new IllegalArgumentException("String must have '(' on current index");
+        int count = 1;
+        char[] reg = nowRegular.toCharArray();
+        for (int i = 1 + startIndex; i < nowRegular.length(); i++) {
+            if (reg[i] == '(')
+                count++;
+            else if (reg[i] == ')') {
+                count--;
+                if (count == 0)
+                    return i;
+            }
+        }
+        return -1;
     }
 }
