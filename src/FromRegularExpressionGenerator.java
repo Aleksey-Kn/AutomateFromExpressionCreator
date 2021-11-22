@@ -40,7 +40,7 @@ public class FromRegularExpressionGenerator {
                 .collect(Collectors.toSet());
         Map<String, Map<Character, String>> regulations = new TreeMap<>();
         Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null);
-        Set<String> states = new TreeSet<>();
+        Set<String> states = new TreeSet<>(regulations.keySet());
         regulations.values().forEach(values -> states.addAll(values.values()));
         return new AutomateDTO(terminals, states, "q0", endStares, regulations);
     }
@@ -55,12 +55,13 @@ public class FromRegularExpressionGenerator {
             for (int i = 0; i < nowString.length(); i++) {
                 if (nowString.charAt(i) == '(') { // обработка конкатинации выражения
                     indexCloseFor = indexCloseFor(nowString, i);
-                    isMultiplicity = nowString.charAt(indexCloseFor + 1) == '*';
+                    isMultiplicity = indexCloseFor + 1 < nowString.length()
+                            && nowString.charAt(indexCloseFor + 1) == '*';
                     nowState = generateRegulations(searchNextBlock(nowString, i), nowState, regulations,
                             calculateReturnStates(isMultiplicity, nowState, inState));
                     i = (isMultiplicity? indexCloseFor: indexCloseFor + 1);
                 } else { // обработка конкатинации терминалов
-                    nextState = "q" + (regulations.size() + 1);
+                    nextState = "q" + regulations.size();
                     for (String ns : nowState) {
                         if (!regulations.containsKey(ns))
                             regulations.put(ns, new HashMap<>());
