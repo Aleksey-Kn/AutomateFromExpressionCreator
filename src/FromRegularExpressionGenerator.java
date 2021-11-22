@@ -57,7 +57,7 @@ public class FromRegularExpressionGenerator {
                     indexCloseFor = indexCloseFor(nowString, i);
                     isMultiplicity = indexCloseFor + 1 < nowString.length()
                             && nowString.charAt(indexCloseFor + 1) == '*';
-                    nowState = generateRegulations(searchNextBlock(nowString, i), nowState, regulations,
+                    nowState = generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations,
                             calculateReturnStates(isMultiplicity, nowState, inState));
                     i = (isMultiplicity? indexCloseFor: indexCloseFor + 1);
                 } else { // обработка конкатинации терминалов
@@ -79,8 +79,7 @@ public class FromRegularExpressionGenerator {
         } else { // обработка логического сложения
             Set<String> result = new HashSet<>();
             for (String s : splittingString) {
-                result.addAll(generateRegulations(s, nowState, regulations,
-                        calculateReturnStates(s.charAt(s.length() - 1) == '*', nowState, inState)));
+                result.addAll(generateRegulations(s, new HashSet<>(nowState), regulations, new HashSet<>(inState)));
             }
             return result;
         }
