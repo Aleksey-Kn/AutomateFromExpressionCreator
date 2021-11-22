@@ -38,9 +38,11 @@ public class FromRegularExpressionGenerator {
                 .filter(c -> Character.isDigit(c) || Character.isLowerCase(c))
                 .mapToObj(i -> (char) i)
                 .collect(Collectors.toSet());
-        Map<String, Map<Character, String>> regulations = new HashMap<>();
+        Map<String, Map<Character, String>> regulations = new TreeMap<>();
         Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null);
-        return new AutomateDTO(terminals, regulations.keySet(), "q0", endStares, regulations);
+        Set<String> states = new TreeSet<>();
+        regulations.values().forEach(values -> states.addAll(values.values()));
+        return new AutomateDTO(terminals, states, "q0", endStares, regulations);
     }
 
     private Set<String> generateRegulations(String nowString, Set<String> nowState,
@@ -51,13 +53,13 @@ public class FromRegularExpressionGenerator {
             int indexCloseFor;
             boolean isMultiplicity;
             for (int i = 0; i < nowString.length(); i++) {
-                if (nowString.charAt(i) == '(') { // конкатинация выражения
+                if (nowString.charAt(i) == '(') { // обработка конкатинации выражения
                     indexCloseFor = indexCloseFor(nowString, i);
                     isMultiplicity = nowString.charAt(indexCloseFor + 1) == '*';
                     nowState = generateRegulations(searchNextBlock(nowString, i), nowState, regulations,
                             calculateReturnStates(isMultiplicity, nowState, inState));
                     i = (isMultiplicity? indexCloseFor: indexCloseFor + 1);
-                } else { // конкатинация терминалов
+                } else { // обработка конкатинации терминалов
                     nextState = "q" + (regulations.size() + 1);
                     for (String ns : nowState) {
                         if (!regulations.containsKey(ns))
@@ -94,15 +96,11 @@ public class FromRegularExpressionGenerator {
 
     private String searchNextBlock(String s, int startInd) {
         int endInd;
-        String result;
         startInd = s.indexOf('(', startInd);
         if (startInd == -1)
             return null;
         endInd = indexCloseFor(s, startInd);
-        result = s.substring(startInd, endInd + 1);
-        if (s.length() > endInd + 1 && s.charAt(endInd + 1) == '*')
-            result += '*';
-        return result;
+        return s.substring(startInd + 1, endInd);
     }
 
     private ArrayList<String> oneStep(ArrayList<String> previousResult, String[] options) { // возвращает входные цепочки, на которые навешены варианты из входных options
