@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 public class FromRegularExpressionGenerator {
     private final String regular;
     private int maxSize;
+    private int stateCount;
 
     public FromRegularExpressionGenerator(String regular) {
         this.regular = regular.replace("\n", "");
@@ -34,6 +35,7 @@ public class FromRegularExpressionGenerator {
     }
 
     public AutomateDTO generateAutomate() {
+        stateCount = 1;
         Set<Character> terminals = regular.chars()
                 .filter(c -> Character.isDigit(c) || Character.isLowerCase(c))
                 .mapToObj(i -> (char) i)
@@ -41,7 +43,7 @@ public class FromRegularExpressionGenerator {
         Map<String, Map<Character, String>> regulations = new TreeMap<>();
         Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null);
         Set<String> states = new TreeSet<>(regulations.keySet());
-        regulations.values().forEach(values -> states.addAll(values.values()));
+        regulations.values().forEach(value -> states.addAll(value.values()));
         return new AutomateDTO(terminals, states, "q0", endStares, regulations);
     }
 
@@ -57,19 +59,28 @@ public class FromRegularExpressionGenerator {
                     indexCloseFor = indexCloseFor(nowString, i);
                     isMultiplicity = indexCloseFor + 1 < nowString.length()
                             && nowString.charAt(indexCloseFor + 1) == '*';
-                    nowState = generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations,
-                            calculateReturnStates(isMultiplicity, nowState, inState));
-                    i = (isMultiplicity? indexCloseFor: indexCloseFor + 1);
+                    if(isMultiplicity){
+                        generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations, // если скобки повторяющиеся, не меняем текущее состояние
+                                calculateReturnStates(true, nowState,
+                                        (indexCloseFor + 2 == nowString.length()? inState: null))); // не null только если последнее выражение подстроки и оно должно выходить в начало
+                        i = indexCloseFor + 1;
+                    } else {
+                        nowState = generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations,
+                                calculateReturnStates(false, nowState,
+                                        (indexCloseFor + 1 == nowString.length()? inState: null)));
+                        i = indexCloseFor;
+                    }
                 } else { // обработка конкатинации терминалов
-                    nextState = "q" + regulations.size();
+                    nextState = "q" + stateCount++;
                     for (String ns : nowState) {
                         if (!regulations.containsKey(ns))
                             regulations.put(ns, new HashMap<>());
-                        regulations.get(ns).put(nowString.charAt(i), nextState);
-                        if (i == nowString.length() - 1 && inState != null) {
+                        if (i == nowString.length() - 1 && inState != null && !inState.isEmpty()) {
                             for (String is : inState) {
                                 regulations.get(ns).put(nowString.charAt(i), is);
                             }
+                        } else{
+                            regulations.get(ns).put(nowString.charAt(i), nextState);
                         }
                     }
                     nowState = Collections.singleton(nextState);
@@ -87,10 +98,10 @@ public class FromRegularExpressionGenerator {
 
     private Set<String> calculateReturnStates(boolean isMultiplicity, Set<String> nowState, Set<String> inState){
         Set<String> result = new HashSet<>();
-        if(isMultiplicity)
-            result.addAll(nowState);
         if(inState != null)
             result.addAll(inState);
+        if(isMultiplicity)
+            result.addAll(nowState);
         return result;
     }
 
