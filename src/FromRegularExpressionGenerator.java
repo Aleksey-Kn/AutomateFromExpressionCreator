@@ -5,6 +5,7 @@ public class FromRegularExpressionGenerator {
     private final String regular;
     private int maxSize;
     private int stateCount;
+    private final Vector<Set<String>> preState = new Vector<>(); // для хранения состояний циклщейся подцепочки
 
     public FromRegularExpressionGenerator(String regular) {
         this.regular = regular.replace("\n", "");
@@ -42,7 +43,7 @@ public class FromRegularExpressionGenerator {
                 .mapToObj(i -> (char) i)
                 .collect(Collectors.toSet());
         Map<String, Map<Character, String>> regulations = new TreeMap<>();
-        Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null);
+        Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null, 0);
         Set<String> states = new TreeSet<>(regulations.keySet());
         regulations.values().forEach(value -> states.addAll(value.values()));
 
@@ -50,7 +51,8 @@ public class FromRegularExpressionGenerator {
         if (regular.contains("*") && !regular.substring(regular.lastIndexOf('*')).contains("(")
                 && !regular.substring(regular.lastIndexOf('*')).contains(")")) {
             String requiredSubstring = regular.substring(regular.lastIndexOf('*') + 1);
-            if(requiredSubstring.length() > 0) {
+            if (requiredSubstring.length() > 0) {
+                boolean startRequiredChain = true;
                 List<String> lastStates = states.stream()
                         .skip(states.size() - requiredSubstring.length() - 1)
                         .collect(Collectors.toList());
@@ -58,21 +60,28 @@ public class FromRegularExpressionGenerator {
                         .substring(regular.lastIndexOf('(') + 1, regular.lastIndexOf(')')));
                 for (char t : terminalUndoLastPart) {
                     if (t != requiredSubstring.charAt(1)) {
-                        regulations.get(lastStates.get(1)).put(t, lastStates.get(0));
+                        regulations.get(lastStates.get(1)).put(t, preState.get(0).iterator().next());
                     }
                 }
+                if (requiredSubstring.charAt(0) != requiredSubstring.charAt(1))
+                    startRequiredChain = false;
                 for (int rsi = 1, li = 2; rsi < requiredSubstring.length(); rsi++, li++) {
-                    if(!regulations.containsKey(lastStates.get(li))){
+                    if (!regulations.containsKey(lastStates.get(li))) {
                         regulations.put(lastStates.get(li), new HashMap<>());
                     }
+                    if (requiredSubstring.charAt(rsi) != requiredSubstring.charAt(rsi - 1))
+                        startRequiredChain = false;
                     for (char t : terminalUndoLastPart) {
-                        if(requiredSubstring.length() != rsi + 1 && requiredSubstring.charAt(rsi + 1) != t
-                                && requiredSubstring.charAt(rsi) == t) {
+                        if (requiredSubstring.length() != rsi + 1 && requiredSubstring.charAt(rsi + 1) != t
+                                && requiredSubstring.charAt(rsi) == t && startRequiredChain) {// для петли
                             regulations.get(lastStates.get(li)).put(t, lastStates.get(li));
-                        } else if(requiredSubstring.charAt(0) == t){
-                            regulations.get(lastStates.get(li)).put(t, lastStates.get(1));
-                        } else if(requiredSubstring.length() == rsi + 1 || requiredSubstring.charAt(rsi + 1) != t){
-                            regulations.get(lastStates.get(li)).put(t, lastStates.get(0));
+                        } else {
+                            boolean b = requiredSubstring.length() == rsi + 1 || requiredSubstring.charAt(rsi + 1) != t;
+                            if (b && requiredSubstring.charAt(0) == t) { // для перехода в первое состояние конечной подцепочки
+                                regulations.get(lastStates.get(li)).put(t, lastStates.get(1));
+                            } else if (b) { // для перехода в последнюю цклящюся скобку
+                                regulations.get(lastStates.get(li)).put(t, preState.get(rsi % preState.size()).iterator().next());
+                            }
                         }
                     }
                 }
@@ -83,26 +92,34 @@ public class FromRegularExpressionGenerator {
     }
 
     private Set<String> generateRegulations(String nowString, Set<String> nowState,
-                                            Map<String, Map<Character, String>> regulations, Set<String> inState) {
+                                            Map<String, Map<Character, String>> regulations, Set<String> inState,
+                                            int external) {
         String[] splittingString = split(nowString);
+        if (external == 1 && inState != null && !inState.isEmpty()) { // если встечаем более поздние повторяющееся подвыражения
+            preState.clear();
+            preState.add(nowState);
+        }
         if (splittingString.length == 1) {
             String nextState;
             int indexCloseFor;
             boolean isMultiplicity;
             for (int i = 0; i < nowString.length(); i++) {
                 if (nowString.charAt(i) == '(') { // обработка конкатинации выражения
+                    if (external == 1 && inState != null && !inState.isEmpty() && i != 0) { // если встечаем более поздние повторяющееся подвыражения
+                        preState.add(nowState);
+                    }
                     indexCloseFor = indexCloseFor(nowString, i);
                     isMultiplicity = indexCloseFor + 1 < nowString.length()
                             && nowString.charAt(indexCloseFor + 1) == '*';
                     if (isMultiplicity) {
-                        generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations, // если скобки повторяющиеся, не меняем текущее состояние
+                        generateRegulations(searchNextBlock(nowString, i), new TreeSet<>(nowState), regulations, // если скобки повторяющиеся, не меняем текущее состояние
                                 calculateReturnStates(true, nowState,
-                                        (indexCloseFor + 2 == nowString.length() ? inState : null))); // не null только если последнее выражение подстроки и оно должно выходить в начало
+                                        (indexCloseFor + 2 == nowString.length() ? inState : null)), external + 1); // не null только если последнее выражение подстроки и оно должно выходить в начало
                         i = indexCloseFor + 1;
                     } else {
-                        nowState = generateRegulations(searchNextBlock(nowString, i), new HashSet<>(nowState), regulations,
+                        nowState = generateRegulations(searchNextBlock(nowString, i), new TreeSet<>(nowState), regulations,
                                 calculateReturnStates(false, nowState,
-                                        (indexCloseFor + 1 == nowString.length() ? inState : null)));
+                                        (indexCloseFor + 1 == nowString.length() ? inState : null)), external + 1);
                         i = indexCloseFor;
                     }
                 } else { // обработка конкатинации терминалов
@@ -125,7 +142,8 @@ public class FromRegularExpressionGenerator {
         } else { // обработка логического сложения
             Set<String> result = new HashSet<>();
             for (String s : splittingString) {
-                result.addAll(generateRegulations(s, new HashSet<>(nowState), regulations, new HashSet<>(inState)));
+                result.addAll(generateRegulations(s, new HashSet<>(nowState), regulations,
+                        (inState == null ? null : new HashSet<>(inState)), external));
             }
             return result;
         }
