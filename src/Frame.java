@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 public class Frame extends JFrame {
     private JLabel canCreate = null;
     private List<String> chainsList;
-    private FromRegularExpressionGenerator fromRegularExpressionGenerator;
 
     private Frame() {
         super("Automate generator");
@@ -223,6 +222,7 @@ public class Frame extends JFrame {
                                 Процесс разбора цепочек автоматом отображать на экране. Предусмотреть возможность разбора цепочки,
                                 введённой пользователем. В качестве исходных данных допускаются РВ, порождающие цепочки,
                                 имеющие определенное количество циклических повторений всех символов алфавита или некоторой их части, заканчивающиеся на заданную цепочку.
+                                Например, (а+b+с)*ааса, или ((а+b)(а+b))*аасb, и т.п.
                                 """));
         saveAutomate.addActionListener(l -> {
             String name = JOptionPane.showInputDialog(null,
