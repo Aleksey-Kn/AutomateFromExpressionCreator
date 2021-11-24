@@ -46,6 +46,12 @@ public class FromRegularExpressionGenerator {
         Set<String> endStares = generateRegulations(regular, Collections.singleton("q0"), regulations, null, 0);
         Set<String> states = new TreeSet<>(regulations.keySet());
         regulations.values().forEach(value -> states.addAll(value.values()));
+        String lastMultiplicity = regular.substring(indexOpenFor(regular, regular.lastIndexOf(')')) + 1,
+                regular.lastIndexOf(')'));
+        boolean onlyConcatenation = split(lastMultiplicity).length == 1;
+        List<String> addedState = new ArrayList<>();
+        String baseState = null;
+        int partCount = (int) lastMultiplicity.chars().filter(c -> (char) c == '(').count();
 
         //добавление недостающих переходов
         if (regular.contains("*") && !regular.substring(regular.lastIndexOf('*')).contains("(")
@@ -54,33 +60,84 @@ public class FromRegularExpressionGenerator {
             if (requiredSubstring.length() > 0) {
                 boolean startRequiredChain = true;
                 List<String> lastStates = states.stream()
+                        .sorted(Comparator.comparing(s -> s.chars().reduce(0, (res, now) -> res * 10 + now)))
                         .skip(states.size() - requiredSubstring.length() - 1)
                         .collect(Collectors.toList());
-                Set<Character> terminalUndoLastPart = terminalUndoLastPart(regular
-                        .substring(regular.lastIndexOf('(') + 1, regular.lastIndexOf(')')));
+                lastStates.set(0, preState.get(0).iterator().next()); // начальное состояние обязательной цеочки совпадает с началом последних циклящийся скобок
+                Set<Character> terminalUndoLastPart = lastMultiplicity.chars()
+                        .filter(Character::isLowerCase)
+                        .mapToObj(c -> (char)c)
+                        .collect(Collectors.toSet());
                 for (char t : terminalUndoLastPart) {
-                    if (t != requiredSubstring.charAt(1)) {
-                        regulations.get(lastStates.get(1)).put(t, preState.get(0).iterator().next());
+                    if (requiredSubstring.charAt(1) != t) {
+                        if (requiredSubstring.charAt(0) == t) { // петля по первому состоянию
+                            if (onlyConcatenation) {
+                                regulations.get(lastStates.get(1)).put(t, "qa");
+                                baseState = lastStates.get(1);
+                                for (int i = 0; i < partCount - 2; i++) {
+                                    addedState.add("q" + (char) ('a' + i));
+                                    regulations.put("q" + (char) ('a' + i),
+                                            new HashMap<>(regulations.get(lastStates.get(1))));
+                                    regulations.get("q" + (char) ('a' + i)).put(t, "q" + (char) ('a' + i + 1));
+                                }
+                                addedState.add("q" + (char) ('a' + partCount - 2));
+                                regulations.put("q" + (char) ('a' + partCount - 2),
+                                        new HashMap<>(regulations.get(lastStates.get(1))));
+                                regulations.get("q" + (char) ('a' + partCount - 2)).put(t, lastStates.get(1));
+                            } else {
+                                regulations.get(lastStates.get(1)).put(t, lastStates.get(1));
+                            }
+                        } else { // первое состояние конечной подцепочки переходит в нулевое
+                            if (baseState != null) {
+                                for (int i = 0; i < addedState.size(); i++) {
+                                    regulations.get(addedState.get(i)).put(t,
+                                            preState.get((i + 3) % preState.size()).iterator().next());
+                                }
+                            }
+                            regulations.get(lastStates.get(1)).put(t, preState.get(2 % preState.size()).iterator().next());
+                        }
                     }
                 }
                 if (requiredSubstring.charAt(0) != requiredSubstring.charAt(1))
                     startRequiredChain = false;
-                for (int rsi = 1, li = 2; rsi < requiredSubstring.length(); rsi++, li++) {
-                    if (!regulations.containsKey(lastStates.get(li))) {
-                        regulations.put(lastStates.get(li), new HashMap<>());
+                for (int rsi = 1, lsi = 2; rsi < requiredSubstring.length(); rsi++, lsi++) { // rsi -- символ перехода в текущее правило, rsi + 1 -- символ перехода из текущего
+                    if (!regulations.containsKey(lastStates.get(lsi))) {
+                        regulations.put(lastStates.get(lsi), new HashMap<>());
                     }
                     if (requiredSubstring.charAt(rsi) != requiredSubstring.charAt(rsi - 1))
                         startRequiredChain = false;
-                    for (char t : terminalUndoLastPart) {
-                        if (requiredSubstring.length() != rsi + 1 && requiredSubstring.charAt(rsi + 1) != t
+                    for (char t : terminalUndoLastPart) {  // создаём переход по кажому символу
+                        if ((requiredSubstring.length() == rsi + 1
+                                || requiredSubstring.charAt(rsi + 1) != requiredSubstring.charAt(rsi))
                                 && requiredSubstring.charAt(rsi) == t && startRequiredChain) {// для петли
-                            regulations.get(lastStates.get(li)).put(t, lastStates.get(li));
+                            if (onlyConcatenation) {
+                                regulations.get(lastStates.get(lsi)).put(t, "qa");
+                                baseState = lastStates.get(lsi);
+                                for (int i = 0; i < partCount - 2; i++) {
+                                    addedState.add("q" + (char) ('a' + i));
+                                    regulations.put("q" + (char) ('a' + i),
+                                            new HashMap<>(regulations.get(lastStates.get(lsi))));
+                                    regulations.get("q" + (char) ('a' + i)).put(t, "q" + (char) ('a' + i + 1));
+                                }
+                                addedState.add("q" + (char) ('a' + partCount - 2));
+                                regulations.put("q" + (char) ('a' + partCount - 2),
+                                        new HashMap<>(regulations.get(lastStates.get(lsi))));
+                                regulations.get("q" + (char) ('a' + partCount - 2)).put(t, lastStates.get(lsi));
+                            } else {
+                                regulations.get(lastStates.get(lsi)).put(t, lastStates.get(lsi));
+                            }
                         } else {
                             boolean b = requiredSubstring.length() == rsi + 1 || requiredSubstring.charAt(rsi + 1) != t;
-                            if (b && requiredSubstring.charAt(0) == t) { // для перехода в первое состояние конечной подцепочки
-                                regulations.get(lastStates.get(li)).put(t, lastStates.get(1));
+                            if (b && requiredSubstring.charAt(0) == t) { // для перехода в начальное состояние обязательной подцепочки
+                                regulations.get(lastStates.get(lsi)).put(t, lastStates.get(1));
                             } else if (b) { // для перехода в последнюю цклящюся скобку
-                                regulations.get(lastStates.get(li)).put(t, preState.get(rsi % preState.size()).iterator().next());
+                                if (baseState != null && baseState.equals(lastStates.get(lsi))) {
+                                    for (int i = 0; i < addedState.size(); i++) {
+                                        regulations.get(addedState.get(i)).put(t,
+                                                preState.get((i + 3 + rsi) % preState.size()).iterator().next());
+                                    }
+                                }
+                                regulations.get(lastStates.get(lsi)).put(t, preState.get((rsi + 2) % preState.size()).iterator().next());
                             }
                         }
                     }
@@ -88,6 +145,7 @@ public class FromRegularExpressionGenerator {
             }
         }
 
+        states.addAll(addedState);
         return new AutomateDTO(terminals, states, "q0", endStares, regulations);
     }
 
@@ -147,18 +205,6 @@ public class FromRegularExpressionGenerator {
             }
             return result;
         }
-    }
-
-    private Set<Character> terminalUndoLastPart(String nowString) {
-        Set<Character> result = new HashSet<>();
-        for (String s : split(nowString)) {
-            if (s.charAt(0) == '(') {
-                result.addAll(terminalUndoLastPart(searchNextBlock(nowString, 0)));
-            } else {
-                result.add(s.charAt(0));
-            }
-        }
-        return result;
     }
 
     private Set<String> calculateReturnStates(boolean isMultiplicity, Set<String> nowState, Set<String> inState) {
@@ -234,9 +280,23 @@ public class FromRegularExpressionGenerator {
             if (reg[i] == '(')
                 count++;
             else if (reg[i] == ')') {
-                count--;
-                if (count == 0)
+                if (--count == 0)
                     return i;
+            }
+        }
+        return -1;
+    }
+
+    private int indexOpenFor(String nowRegular, int index) {
+        int count = 1;
+        char[] reg = nowRegular.toCharArray();
+        for (int i = index - 1; i >= 0; i--) {
+            if (reg[i] == ')') {
+                count++;
+            } else if (reg[i] == '(') {
+                if (--count == 0) {
+                    return i;
+                }
             }
         }
         return -1;
