@@ -66,10 +66,10 @@ public class FromRegularExpressionGenerator {
                 lastStates.set(0, preState.get(0).iterator().next()); // начальное состояние обязательной цеочки совпадает с началом последних циклящийся скобок
                 Set<Character> terminalUndoLastPart = lastMultiplicity.chars()
                         .filter(Character::isLowerCase)
-                        .mapToObj(c -> (char)c)
+                        .mapToObj(c -> (char) c)
                         .collect(Collectors.toSet());
                 for (char t : terminalUndoLastPart) {
-                    if (requiredSubstring.charAt(1) != t) {
+                    if (requiredSubstring.length() == 1 || requiredSubstring.charAt(1) != t) {
                         if (requiredSubstring.charAt(0) == t) { // петля по первому состоянию
                             if (onlyConcatenation) {
                                 regulations.get(lastStates.get(1)).put(t, "qa");
@@ -85,6 +85,9 @@ public class FromRegularExpressionGenerator {
                                         new HashMap<>(regulations.get(lastStates.get(1))));
                                 regulations.get("q" + (char) ('a' + partCount - 2)).put(t, lastStates.get(1));
                             } else {
+                                if (!regulations.containsKey(lastStates.get(1))) {
+                                    regulations.put(lastStates.get(1), new HashMap<>());
+                                }
                                 regulations.get(lastStates.get(1)).put(t, lastStates.get(1));
                             }
                         } else { // первое состояние конечной подцепочки переходит в нулевое
@@ -98,46 +101,48 @@ public class FromRegularExpressionGenerator {
                         }
                     }
                 }
-                if (requiredSubstring.charAt(0) != requiredSubstring.charAt(1))
-                    startRequiredChain = false;
-                for (int rsi = 1, lsi = 2; rsi < requiredSubstring.length(); rsi++, lsi++) { // rsi -- символ перехода в текущее правило, rsi + 1 -- символ перехода из текущего
-                    if (!regulations.containsKey(lastStates.get(lsi))) {
-                        regulations.put(lastStates.get(lsi), new HashMap<>());
-                    }
-                    if (requiredSubstring.charAt(rsi) != requiredSubstring.charAt(rsi - 1))
+                if (requiredSubstring.length() > 1) {
+                    if (requiredSubstring.charAt(0) != requiredSubstring.charAt(1))
                         startRequiredChain = false;
-                    for (char t : terminalUndoLastPart) {  // создаём переход по кажому символу
-                        if ((requiredSubstring.length() == rsi + 1
-                                || requiredSubstring.charAt(rsi + 1) != requiredSubstring.charAt(rsi))
-                                && requiredSubstring.charAt(rsi) == t && startRequiredChain) {// для петли
-                            if (onlyConcatenation) {
-                                regulations.get(lastStates.get(lsi)).put(t, "qa");
-                                baseState = lastStates.get(lsi);
-                                for (int i = 0; i < partCount - 2; i++) {
-                                    addedState.add("q" + (char) ('a' + i));
-                                    regulations.put("q" + (char) ('a' + i),
-                                            new HashMap<>(regulations.get(lastStates.get(lsi))));
-                                    regulations.get("q" + (char) ('a' + i)).put(t, "q" + (char) ('a' + i + 1));
-                                }
-                                addedState.add("q" + (char) ('a' + partCount - 2));
-                                regulations.put("q" + (char) ('a' + partCount - 2),
-                                        new HashMap<>(regulations.get(lastStates.get(lsi))));
-                                regulations.get("q" + (char) ('a' + partCount - 2)).put(t, lastStates.get(lsi));
-                            } else {
-                                regulations.get(lastStates.get(lsi)).put(t, lastStates.get(lsi));
-                            }
-                        } else {
-                            boolean b = requiredSubstring.length() == rsi + 1 || requiredSubstring.charAt(rsi + 1) != t;
-                            if (b && requiredSubstring.charAt(0) == t) { // для перехода в начальное состояние обязательной подцепочки
-                                regulations.get(lastStates.get(lsi)).put(t, lastStates.get(1));
-                            } else if (b) { // для перехода в последнюю цклящюся скобку
-                                if (baseState != null && baseState.equals(lastStates.get(lsi))) {
-                                    for (int i = 0; i < addedState.size(); i++) {
-                                        regulations.get(addedState.get(i)).put(t,
-                                                preState.get((i + 3 + rsi) % preState.size()).iterator().next());
+                    for (int rsi = 1, lsi = 2; rsi < requiredSubstring.length(); rsi++, lsi++) { // rsi -- символ перехода в текущее правило, rsi + 1 -- символ перехода из текущего
+                        if (!regulations.containsKey(lastStates.get(lsi))) {
+                            regulations.put(lastStates.get(lsi), new HashMap<>());
+                        }
+                        if (requiredSubstring.charAt(rsi) != requiredSubstring.charAt(rsi - 1))
+                            startRequiredChain = false;
+                        for (char t : terminalUndoLastPart) {  // создаём переход по кажому символу
+                            if ((requiredSubstring.length() == rsi + 1
+                                    || requiredSubstring.charAt(rsi + 1) != requiredSubstring.charAt(rsi))
+                                    && requiredSubstring.charAt(rsi) == t && startRequiredChain) {// для петли
+                                if (onlyConcatenation) {
+                                    regulations.get(lastStates.get(lsi)).put(t, "qa");
+                                    baseState = lastStates.get(lsi);
+                                    for (int i = 0; i < partCount - 2; i++) {
+                                        addedState.add("q" + (char) ('a' + i));
+                                        regulations.put("q" + (char) ('a' + i),
+                                                new HashMap<>(regulations.get(lastStates.get(lsi))));
+                                        regulations.get("q" + (char) ('a' + i)).put(t, "q" + (char) ('a' + i + 1));
                                     }
+                                    addedState.add("q" + (char) ('a' + partCount - 2));
+                                    regulations.put("q" + (char) ('a' + partCount - 2),
+                                            new HashMap<>(regulations.get(lastStates.get(lsi))));
+                                    regulations.get("q" + (char) ('a' + partCount - 2)).put(t, lastStates.get(lsi));
+                                } else {
+                                    regulations.get(lastStates.get(lsi)).put(t, lastStates.get(lsi));
                                 }
-                                regulations.get(lastStates.get(lsi)).put(t, preState.get((rsi + 2) % preState.size()).iterator().next());
+                            } else {
+                                boolean b = requiredSubstring.length() == rsi + 1 || requiredSubstring.charAt(rsi + 1) != t;
+                                if (b && requiredSubstring.charAt(0) == t) { // для перехода в начальное состояние обязательной подцепочки
+                                    regulations.get(lastStates.get(lsi)).put(t, lastStates.get(1));
+                                } else if (b) { // для перехода в последнюю цклящюся скобку
+                                    if (baseState != null && baseState.equals(lastStates.get(lsi))) {
+                                        for (int i = 0; i < addedState.size(); i++) {
+                                            regulations.get(addedState.get(i)).put(t,
+                                                    preState.get((i + 3 + rsi) % preState.size()).iterator().next());
+                                        }
+                                    }
+                                    regulations.get(lastStates.get(lsi)).put(t, preState.get((rsi + 2) % preState.size()).iterator().next());
+                                }
                             }
                         }
                     }
