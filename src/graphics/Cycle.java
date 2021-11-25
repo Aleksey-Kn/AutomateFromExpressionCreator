@@ -13,7 +13,7 @@ class Cycle implements Transition {
 
     @Override
     public void print(Graphics g) {
-        g.drawArc(point.x - 20, point.y - 20, 20, 20, 45, -270);
-        g.drawChars(title.toCharArray(), 0, title.length(), point.x, point.y - 30);
+        g.drawArc(point.x - 12, point.y - 25, 30, 25, -100, 200);
+        g.drawChars(title.toCharArray(), 0, title.length(), point.x + 10, point.y - 40);
     }
 }

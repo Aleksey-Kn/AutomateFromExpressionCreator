@@ -10,7 +10,7 @@ public class Graph extends JFrame {
 
     public Graph(Set<String[]> regulations){
         super("Graph");
-        setBounds(300, 200, 800, 800);
+        setBounds(200, 10, 800, 800);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         Set<String> allState = new HashSet<>();
@@ -33,7 +33,8 @@ public class Graph extends JFrame {
             if(rules[0].equals(rules[2])){
                 transitions.add(new Cycle(circleMap.get(rules[0]).getOutPoint(), rules[1]));
             } else{
-                transitions.add(new Line(circleMap.get(rules[0]).getOutPoint(), circleMap.get(rules[2]).getInPoint(), rules[1]));
+                transitions.add(
+                        new Line(circleMap.get(rules[0]).getOutPoint(), circleMap.get(rules[2]).getInPoint(), rules[1]));
             }
         }
 

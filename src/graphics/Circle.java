@@ -11,13 +11,15 @@ class Circle {
     Circle(String name, Point position){
         this.name = name;
         this.position = position;
-        inPoint = new Point(position.x + 20, position.y + 20);
-        outPoint = new Point(position.x + 10, position.y + 10);
+        inPoint = new Point(position.x + 5, position.y + 5);
+        outPoint = new Point(position.x + 30, position.y + 30);
     }
 
     void print(Graphics g){
-        g.drawOval(position.x, position.y, 30, 30);
-        g.drawChars(name.toCharArray(), 0, name.length(), position.x + 10, position.y + 12);
+        g.drawOval(position.x, position.y, 40, 40);
+        g.setColor(Color.BLUE);
+        g.drawChars(name.toCharArray(), 0, name.length(), position.x + 15, position.y + 15);
+        g.setColor(Color.BLACK);
     }
 
     public Point getInPoint() {
