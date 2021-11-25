@@ -1,3 +1,5 @@
+import graphics.Graph;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -91,6 +93,9 @@ public class Frame extends JFrame {
             automatePane.updateUI();
         });
         automatePane.add(new JScrollPane(regulations));
+        JButton paintGraph = new JButton("Paint graph");
+        paintGraph.addActionListener(l -> new Graph(regulationsFormTable(tableModel)));
+        automatePane.add(paintGraph);
         JButton checkChains = new JButton("Check chains");
         automatePane.add(checkChains);
         JTextField userChain = new JTextField();
