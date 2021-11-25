@@ -38,12 +38,13 @@ public class Graph extends JFrame {
             }
         }
 
-        repaint();
         setVisible(true);
     }
 
     @Override
     public void paint(Graphics g) {
+        super.paint(g);
+        g.clearRect(0, 0, getWidth(), getHeight());
         circleMap.values().forEach(c -> c.print(g));
         transitions.forEach(t -> t.print(g));
     }

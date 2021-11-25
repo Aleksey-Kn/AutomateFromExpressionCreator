@@ -20,7 +20,7 @@ class Line implements Transition{
         int deltaY = startPoint.y - endPoint.y;
         double injection = Math
                 .asin(deltaY / Math.sqrt(Math.pow(Math.abs(startPoint.x - endPoint.x), 2) + Math.pow(Math.abs(deltaY), 2)));
-        if(endPoint.x > startPoint.x){
+        if(endPoint.x > startPoint.x){ // инверсия по оси y
             if(injection < 0){
                 injection = Math.toRadians(-90) - (injection - Math.toRadians(-90));
             } else{
@@ -32,7 +32,9 @@ class Line implements Transition{
         g.drawLine(endPoint.x, endPoint.y,
                 (int)(endPoint.x + Math.cos(injection - 0.3) * 15), (int)(endPoint.y + Math.sin(injection - 0.3) * 15));
 
-        g.drawChars(title.toCharArray(), 0, title.length(), (endPoint.x - startPoint.x) / 3 + startPoint.x,
-                (endPoint.y - startPoint.y) / 3 + startPoint.y - 10);
+        double titleRandomDelta = Math.random() / 3 + 0.1;
+        g.drawChars(title.toCharArray(), 0, title.length(),
+                (int)((endPoint.x - startPoint.x) * titleRandomDelta + startPoint.x),
+                (int)((endPoint.y - startPoint.y) * titleRandomDelta + startPoint.y - 10));
     }
 }
