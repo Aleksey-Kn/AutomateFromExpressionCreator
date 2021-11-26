@@ -14,6 +14,7 @@ class Cycle implements Transition {
     @Override
     public void print(Graphics g) {
         g.drawArc(point.x - 12, point.y - 25, 30, 25, -100, 200);
-        g.drawChars(title.toCharArray(), 0, title.length(), point.x + 10, point.y - 40);
+        g.drawChars(title.toCharArray(), 0, title.length(), point.x + 10,
+                (int) (point.y - 10 - Math.random() * 45));
     }
 }

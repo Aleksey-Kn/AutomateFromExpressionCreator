@@ -51,7 +51,15 @@ public class FromRegularExpressionGenerator {
         boolean onlyConcatenation = split(lastMultiplicity).length == 1;
         List<String> addedState = new ArrayList<>();
         String baseState = null;
-        int partCount = (int) lastMultiplicity.chars().filter(c -> (char) c == '(').count();
+
+        StringBuilder parsedLastMultiplicity = new StringBuilder(lastMultiplicity);
+        for(int i = 0, icf; i < parsedLastMultiplicity.length(); i++){
+            if(parsedLastMultiplicity.charAt(i) == '('){
+                icf = indexCloseFor(parsedLastMultiplicity.toString(), i);
+                parsedLastMultiplicity.delete(i, (icf == -1? parsedLastMultiplicity.length(): icf));
+            }
+        }
+        int partCount = parsedLastMultiplicity.length(); // количество терминалов, генерируемых последней скобкой за одну итерацию
 
         //добавление недостающих переходов
         if (regular.contains("*") && !regular.substring(regular.lastIndexOf('*')).contains("(")
@@ -72,6 +80,9 @@ public class FromRegularExpressionGenerator {
                     if (requiredSubstring.length() == 1 || requiredSubstring.charAt(1) != t) {
                         if (requiredSubstring.charAt(0) == t) { // петля по первому состоянию
                             if (onlyConcatenation) {
+                                if(!regulations.containsKey(lastStates.get(1))){
+                                    regulations.put(lastStates.get(1), new HashMap<>());
+                                }
                                 regulations.get(lastStates.get(1)).put(t, "qa");
                                 baseState = lastStates.get(1);
                                 for (int i = 0; i < partCount - 2; i++) {
@@ -167,10 +178,10 @@ public class FromRegularExpressionGenerator {
             int indexCloseFor;
             boolean isMultiplicity;
             for (int i = 0; i < nowString.length(); i++) {
+                if (external == 1 && inState != null && !inState.isEmpty() && i != 0) { // если встечаем более поздние повторяющееся подвыражения
+                    preState.add(nowState);
+                }
                 if (nowString.charAt(i) == '(') { // обработка конкатинации выражения
-                    if (external == 1 && inState != null && !inState.isEmpty() && i != 0) { // если встечаем более поздние повторяющееся подвыражения
-                        preState.add(nowState);
-                    }
                     indexCloseFor = indexCloseFor(nowString, i);
                     isMultiplicity = indexCloseFor + 1 < nowString.length()
                             && nowString.charAt(indexCloseFor + 1) == '*';
