@@ -47,7 +47,7 @@ public class Frame extends JFrame {
         menuPanel.add(theme);
         JButton open = new JButton("Open initial data");
         menuPanel.add(open);
-        JButton saveAutomate = new JButton("Save expression to file");
+        JButton saveAutomate = new JButton("Save automate to file");
         menuPanel.add(saveAutomate);
         JButton saveChains = new JButton("Save chains to file");
         menuPanel.add(saveChains);
@@ -227,7 +227,7 @@ public class Frame extends JFrame {
                                 Процесс разбора цепочек автоматом отображать на экране. Предусмотреть возможность разбора цепочки,
                                 введённой пользователем. В качестве исходных данных допускаются РВ, порождающие цепочки,
                                 имеющие определенное количество циклических повторений всех символов алфавита или некоторой их части, заканчивающиеся на заданную цепочку.
-                                Например, (а+b+с)*ааса, или ((а+b)(а+b))*аасb, и т.п.
+                                Например, (a+b+c)*aabc, или ((a+b)(a+b))*aacb, и т.п.
                                 """));
         saveAutomate.addActionListener(l -> {
             String name = JOptionPane.showInputDialog(null,
@@ -235,7 +235,7 @@ public class Frame extends JFrame {
                     "Сохранение автомата", JOptionPane.QUESTION_MESSAGE);
             if(name != null) {
                 try {
-                    PrintWriter writer = new PrintWriter(new FileWriter(name));
+                    PrintWriter writer = new PrintWriter(new FileWriter(name + ".txt"));
                     writer.print("M({");
                     writer.print(states.getText());
                     writer.print("}, {");
@@ -246,6 +246,10 @@ public class Frame extends JFrame {
                     writer.print(endStates.getText());
                     writer.println("})");
                     writer.println("P:");
+                    for(int i = 0; i < tableModel.getColumnCount(); i++) {
+                        writer.print(tableModel.getColumnName(i) + "\t");
+                    }
+                    writer.println();
                     for(int i = 0; i < tableModel.getRowCount(); i++){
                         for (int j = 0; j < tableModel.getColumnCount(); j++)
                             writer.print(tableModel.getValueAt(i, j) + "\t");
@@ -264,8 +268,8 @@ public class Frame extends JFrame {
             if (name != null) {
                 try {
                     PrintWriter writer = new PrintWriter(new FileWriter(name + ".txt"));
-                    for (Component component : chainsPane.getComponents()) {
-                        writer.println(((Label) component).getText());
+                    for (String chain: chainsList) {
+                        writer.println(chain);
                     }
                     writer.close();
                 } catch (IOException e) {
